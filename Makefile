@@ -6,19 +6,20 @@ CXXFLAGS = -std=c++17 -g -Wall
 
 RM = rm -rf
 
-TARGET = src/aes
-OUTPUT = build/aes
-
+SOURCE = src
+TARGET = aes
+OUTPUT = build
 
 
 all: $(TARGET)
 
-$(TARGET):	$(TARGET).cpp $(TARGET).h
+$(TARGET):
 	mkdir build;
-	$(CXX) $(CXXFLAGS) -o $(OUTPUT) $(TARGET).cpp
+	$(MAKE) -C src
 
 
 test:
+	$(MAKE) -C test
 
 .PHONY: clean
 
