@@ -88,12 +88,6 @@ void AES::generate_cipher_key()
 
   std::generate(begin(this->cipherKey), end(this->cipherKey), std::ref(this->rbe));
 
-  for (auto &l : this->cipherKey)
-  {
-    std::cout << int(l) << std::endl;
-  }
-
-  std::cout << std::endl;
 }
 
 std::vector<uint8_t> AES::get_size_bytes_from_file(std::ifstream &inFile)
@@ -118,7 +112,7 @@ void AES::write_size_bytes_to_file(std::ofstream &encFile, std::vector<std::vect
   {
     for (int i = 0; i < this->rows; i++)
     {
-      encFile << std::hex << int(output[i][j]);
+      encFile << "0x" << std::hex << std::setw(2) << std::setfill('0') << int(output[i][j]) << " ";
     }
   }
 }
@@ -243,7 +237,7 @@ void AES::print_state(std::vector<std::vector<uint8_t>> state)
   {
     for (int j = 0; j < this->columns; j++)
     {
-      std::cout << std::hex << state[i][j] << " ";
+      std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << int(state[i][j]) << " ";
     }
     std::cout << std::endl;
   }
