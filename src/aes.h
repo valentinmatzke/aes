@@ -35,10 +35,10 @@ private:
   void write_size_bytes_to_file(std::ofstream &, std::vector<std::vector<uint8_t>>);
   void perform_encryption(std::ofstream &, std::vector<uint8_t>);
   uint8_t gf_mul(uint8_t, uint8_t);
-  void add_round_key(std::vector<std::vector<uint8_t>>);
-  void sub_bytes(std::vector<std::vector<uint8_t>>);
-  void shift_rows(std::vector<std::vector<uint8_t>>);
-  void mix_columns(std::vector<std::vector<uint8_t>>);
+  void add_round_key(std::vector<std::vector<uint8_t>>&);
+  void sub_bytes(std::vector<std::vector<uint8_t>>&);
+  void shift_rows(std::vector<std::vector<uint8_t>>&);
+  void mix_columns(std::vector<std::vector<uint8_t>>&);
 
   void print_state(std::vector<std::vector<uint8_t>>);
 

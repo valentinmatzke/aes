@@ -1,5 +1,6 @@
 #include "aes.h"
 #include <iostream>
+#include <iomanip>
 
 AES::AES(int size, std::string inputFile, std::string encryptedFile, std::string decryptedFile)
 {
@@ -86,6 +87,13 @@ void AES::generate_cipher_key()
   this->cipherKey.resize(sizeInBytes);
 
   std::generate(begin(this->cipherKey), end(this->cipherKey), std::ref(this->rbe));
+
+  for (auto &l : this->cipherKey)
+  {
+    std::cout << int(l) << std::endl;
+  }
+
+  std::cout << std::endl;
 }
 
 std::vector<uint8_t> AES::get_size_bytes_from_file(std::ifstream &inFile)
@@ -106,6 +114,13 @@ std::vector<uint8_t> AES::get_size_bytes_from_file(std::ifstream &inFile)
 
 void AES::write_size_bytes_to_file(std::ofstream &encFile, std::vector<std::vector<uint8_t>> output)
 {
+  for (int j = 0; j < this->columns; j++)
+  {
+    for (int i = 0; i < this->rows; i++)
+    {
+      encFile << std::hex << int(output[i][j]);
+    }
+  }
 }
 
 void AES::perform_encryption(std::ofstream &encFile, std::vector<uint8_t> nBytes)
@@ -138,7 +153,7 @@ void AES::perform_encryption(std::ofstream &encFile, std::vector<uint8_t> nBytes
   this->write_size_bytes_to_file(encFile, state);
 }
 
-void AES::add_round_key(std::vector<std::vector<uint8_t>> state)
+void AES::add_round_key(std::vector<std::vector<uint8_t>> &state)
 {
   for (int j = 0; j < this->columns; j++)
   {
@@ -148,7 +163,7 @@ void AES::add_round_key(std::vector<std::vector<uint8_t>> state)
     }
   }
 }
-void AES::sub_bytes(std::vector<std::vector<uint8_t>> state)
+void AES::sub_bytes(std::vector<std::vector<uint8_t>> &state)
 {
   for (int i = 0; i < this->rows; i++)
   {
@@ -161,7 +176,7 @@ void AES::sub_bytes(std::vector<std::vector<uint8_t>> state)
     }
   }
 }
-void AES::shift_rows(std::vector<std::vector<uint8_t>> state)
+void AES::shift_rows(std::vector<std::vector<uint8_t>> &state)
 {
   for (int i = 0; i < this->rows; i++)
   {
@@ -176,17 +191,17 @@ void AES::shift_rows(std::vector<std::vector<uint8_t>> state)
     }
   }
 }
-void AES::mix_columns(std::vector<std::vector<uint8_t>> state)
+void AES::mix_columns(std::vector<std::vector<uint8_t>> &state)
 {
   for (int j = 0; j < this->columns; j++)
   {
 
     std::vector<uint8_t> mixed(4);
 
-    mixed.push_back((gf_mul(state[0][j], 0x2) + gf_mul(state[1][j], 0x3) + state[2][j] + state[3][j]) % 0x5);
-    mixed.push_back((state[0][j] + gf_mul(state[1][j], 0x2) + gf_mul(state[2][j], 0x3) + state[3][j]) % 0x5);
-    mixed.push_back((state[0][j] + state[1][j] + gf_mul(state[2][j], 0x2) + gf_mul(state[3][j], 0x3)) % 0x5);
-    mixed.push_back((gf_mul(state[0][j], 0x3) + state[1][j] + state[2][j] + gf_mul(state[3][j], 0x2)) % 0x5);
+    mixed.push_back((gf_mul(state[0][j], 0x2) ^ gf_mul(state[1][j], 0x3) ^ state[2][j] ^ state[3][j]));
+    mixed.push_back((state[0][j] ^ gf_mul(state[1][j], 0x2) ^ gf_mul(state[2][j], 0x3) ^ state[3][j]));
+    mixed.push_back((state[0][j] ^ state[1][j] ^ gf_mul(state[2][j], 0x2) ^ gf_mul(state[3][j], 0x3)));
+    mixed.push_back((gf_mul(state[0][j], 0x3) ^ state[1][j] ^ state[2][j] ^ gf_mul(state[3][j], 0x2)));
 
     state[0][j] = mixed[0];
     state[1][j] = mixed[1];
@@ -197,10 +212,28 @@ void AES::mix_columns(std::vector<std::vector<uint8_t>> state)
 
 uint8_t AES::gf_mul(uint8_t a, uint8_t b)
 {
-  int _a = a;
-  int _b = b;
+  uint8_t p = 0;
+  uint8_t high_bit_mask = 0x80;
+  uint8_t high_bit = 0;
+  uint8_t modulo = 0x1B; /* x^8 + x^4 + x^3 + x + 1 */
 
-  return (uint8_t)((_a * _b) % (0x5));
+  for (int i = 0; i < 8; i++)
+  {
+    if (b & 1)
+    {
+      p ^= a;
+    }
+
+    high_bit = a & high_bit_mask;
+    a <<= 1;
+    if (high_bit)
+    {
+      a ^= modulo;
+    }
+    b >>= 1;
+  }
+
+  return p;
 }
 
 void AES::print_state(std::vector<std::vector<uint8_t>> state)
