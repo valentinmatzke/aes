@@ -5,12 +5,20 @@ AES::AES(int size, std::string inputFile, std::string encryptedFile, std::string
 {
   this->size = size;
   this->inputFile = inputFile;
+  this->encryptedFile = encryptedFile;
+  this->decryptedFile = decryptedFile;
+  this->columns = this->size / 32;
 
   switch (this->size)
   {
   case 128:
+    this->numberRounds = 10;
+    break;
   case 192:
+    this->numberRounds = 12;
+    break;
   case 265:
+    this->numberRounds = 14;
     break;
   default:
     this->size = 128;
@@ -35,8 +43,6 @@ AES::AES(int size, std::string inputFile, std::string encryptedFile, std::string
 
 void AES::encrypt()
 {
-  const int rows = 4;
-  const int columns = size / 32;
 
   this->generate_cipher_key();
 
@@ -98,10 +104,101 @@ std::vector<uint8_t> AES::get_size_bytes_from_file(std::ifstream &inFile)
   return nBytes;
 }
 
+void AES::write_size_bytes_to_file(std::ofstream &encFile, uint8_t **output)
+{
+}
+
 void AES::perform_encryption(std::ofstream &encFile, std::vector<uint8_t> nBytes)
 {
-  // for (auto &l : nBytes)
-  // {
-  //   std::cout << std::hex << l;
-  // }
+
+  uint8_t state[rows][columns];
+
+  for (int j = 0; j < columns; j++)
+  {
+    for (int i = 0; i < rows; i++)
+    {
+      state[i][j] = nBytes[j + i * rows];
+    }
+  }
+
+  this->add_round_key((uint8_t **)state);
+
+  for (int i = 0; i < this->numberRounds; i++)
+  {
+    this->sub_bytes((uint8_t **)state);
+    this->shift_rows((uint8_t **)state);
+    this->mix_columns((uint8_t **)state);
+    this->add_round_key((uint8_t **)state);
+  }
+
+  this->sub_bytes((uint8_t **)state);
+  this->shift_rows((uint8_t **)state);
+  this->add_round_key((uint8_t **)state);
+
+  this->write_size_bytes_to_file(encFile, (uint8_t **)state);
+}
+
+void AES::add_round_key(uint8_t **state)
+{
+  for (int j = 0; j < this->columns; j++)
+  {
+    for (int i = 0; i < this->rows; i++)
+    {
+      state[i][j] ^= this->cipherKey[j * this->rows + i];
+    }
+  }
+}
+void AES::sub_bytes(uint8_t **state)
+{
+  for (int i = 0; i < this->rows; i++)
+  {
+    for (int j = 0; j < this->columns; j++)
+    {
+      int row = state[i][j] & 0xf0;
+      int column = state[i][j] & 0xf;
+
+      state[i][j] = this->multiplicativeInverse[row][column];
+    }
+  }
+}
+void AES::shift_rows(uint8_t **state)
+{
+  for (int i = 0; i < this->rows; i++)
+  {
+    std::vector<uint8_t> shifted(this->columns);
+    for (int j = 0; j < this->columns; j++)
+    {
+      shifted[j] = state[i][(i + j) % this->columns];
+    }
+    for (int j = 0; j < this->columns; j++)
+    {
+      state[i][j] = shifted[j];
+    }
+  }
+}
+void AES::mix_columns(uint8_t **state)
+{
+  for (int j = 0; j < this->columns; j++)
+  {
+
+    std::vector<uint8_t> mixed(4);
+
+    mixed.push_back((gf_mul(state[0][j], 0x2) + gf_mul(state[1][j], 0x3) + state[2][j] + state[3][j]) % 0x5);
+    mixed.push_back((state[0][j] + gf_mul(state[1][j], 0x2) + gf_mul(state[2][j], 0x3) + state[3][j]) % 0x5);
+    mixed.push_back((state[0][j] + state[1][j] + gf_mul(state[2][j], 0x2) + gf_mul(state[3][j], 0x3)) % 0x5);
+    mixed.push_back((gf_mul(state[0][j], 0x3) + state[1][j] + state[2][j] + gf_mul(state[3][j], 0x2)) % 0x5);
+
+    state[0][j] = mixed[0];
+    state[1][j] = mixed[1];
+    state[2][j] = mixed[2];
+    state[3][j] = mixed[3];
+  }
+}
+
+uint8_t AES::gf_mul(uint8_t a, uint8_t b)
+{
+  int _a = a;
+  int _b = b;
+
+  return (uint8_t)((_a * _b) % (0x5));
 }
